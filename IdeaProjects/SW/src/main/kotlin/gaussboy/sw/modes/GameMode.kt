@@ -7,6 +7,7 @@ import java.lang.Exception
 const val EMPTY_CELL = 0
 const val SHEEP = 1
 const val WOLF = 2
+
 val mapOfCells = mapOf(
     "b8" to 0, "d8" to 1, "f8" to 2, "h8" to 3,
     "a7" to 4, "c7" to 5, "e7" to 6, "g7" to 7,
@@ -23,26 +24,30 @@ class GameMode {
 
     private var field = Array(32) { EMPTY_CELL }
 
-    fun makeAMove(moveStr: String): Boolean {
+    fun makeMove(moveStr: String): Boolean {
         val move = getMove(moveStr)
         return if (isPlayerTurn) {
             if (!checkIfMoveCorrect(move))
                 false
             else {
-                field[move.first] = 0
+                field[move.first] = EMPTY_CELL
                 field[move.second] = WOLF
-                checkWOL()
+                when (checkEnd(field.indexOf(SHEEP))) {
+                    'W' -> endGame(true)
+                    'S' -> endGame(false)
+                }
                 true
             }
         } else {
             if (move.first == move.second) {
-                val printing = PrettyFieldPrinting()
-                printing.print(field)
-                val ending = EndMode(true)
+                endGame(true)
             }
-            field[move.first] = 0
+            field[move.first] = EMPTY_CELL
             field[move.second] = SHEEP
-            checkWOL()
+            when (checkEnd(field.indexOf(SHEEP))) {
+                'W' -> endGame(true)
+                'S' -> endGame(false)
+            }
             true
         }
     }
@@ -56,28 +61,29 @@ class GameMode {
         field[30] = WOLF
         field[31] = WOLF
         val printing = PrettyFieldPrinting()
-        printing.print(field)
-        val bot = Bot()
+        printing.printField(field)
+        val bot = Bot(field)
         while (true) {
             if (isPlayerTurn) {
-                println("Введите ваш ход:")
+                println("Введите ваш ход в формате [a0 b0]:")
                 val turn = readLine()
-                if (makeAMove(checkMoveString(turn))) {
+                if (makeMove(checkMoveString(turn))) {
                     isPlayerTurn = false
-                    printing.print(field)
-                } else
-                    println("Так cходить невозможно!")
+                    printing.printField(field)
+                } else {
+                    println("Так сходить невозможно!")
+                }
             } else {
-                makeAMove(bot.makeAMove(field))
+                makeMove(bot.calculateMove())
                 isPlayerTurn = true
-                printing.print(field)
+                printing.printField(field)
             }
         }
     }
 
 
     private fun checkMoveString(input: String?): String {
-        return input!!//TODO()
+        return input!!
     }
 
     private fun checkIfMoveCorrect(move: Pair<Int, Int>): Boolean {
@@ -114,48 +120,80 @@ class GameMode {
         return true
     }
 
-    private fun checkWOL() {
-        val sheepCurrentIndex = field.indexOf(SHEEP)
+    fun checkEnd(sheepCurrentIndex: Int): Char {
         if (sheepCurrentIndex in 28..31) {
-            val printing = PrettyFieldPrinting()
-            printing.print(field)
-            val ending = EndMode(false)
+            return 'S'
         } else {
+            // Четный ряд
             if ((sheepCurrentIndex / 4) % 2 == 0) {
-                if (sheepCurrentIndex !in 0..3) {
-                    if ((field[sheepCurrentIndex + 4] != EMPTY_CELL) && (field[sheepCurrentIndex + 5] != EMPTY_CELL) &&
-                        (field[sheepCurrentIndex - 4] != EMPTY_CELL) && (field[sheepCurrentIndex - 3] != EMPTY_CELL)
-                    ) {
-                        val printing = PrettyFieldPrinting()
-                        printing.print(field)
-                        val ending = EndMode(true)
+                // Не первый ряд
+                if (sheepCurrentIndex !in 0..2) {
+                    // Клетка у края справа
+                    if (sheepCurrentIndex % 4 == 3) {
+                        if (((field[sheepCurrentIndex + 4] != EMPTY_CELL)) && (field[sheepCurrentIndex - 4] != EMPTY_CELL)) {
+                            return 'W'
+                        }
+                        // Клетка не у края
+                    } else {
+                        if ((field[sheepCurrentIndex + 4] != EMPTY_CELL) && (field[sheepCurrentIndex + 5] != EMPTY_CELL) &&
+                            (field[sheepCurrentIndex - 4] != EMPTY_CELL) && (field[sheepCurrentIndex - 3] != EMPTY_CELL)
+                        ) {
+                            return 'W'
+                        }
                     }
-                } else if ((field[sheepCurrentIndex + 4] != EMPTY_CELL) && (field[sheepCurrentIndex + 5] != EMPTY_CELL)) {
-                    val printing = PrettyFieldPrinting()
-                    printing.print(field)
-                    val ending = EndMode(true)
+                    // Первый ряд
+                } else {
+                    // Клетка у края справа
+                    if (sheepCurrentIndex == 3) {
+                        if ((field[sheepCurrentIndex + 4] != EMPTY_CELL)) {
+                            return 'W'
+                        }
+                        // Клетка не у края
+                    } else {
+                        if ((field[sheepCurrentIndex + 4] != EMPTY_CELL) && (field[sheepCurrentIndex + 5] != EMPTY_CELL)) {
+                            return 'W'
+                        }
+                    }
                 }
-            } else if ((field[sheepCurrentIndex + 4] != EMPTY_CELL) && (field[sheepCurrentIndex + 3] != EMPTY_CELL) &&
-                (field[sheepCurrentIndex - 4] != EMPTY_CELL) && (field[sheepCurrentIndex - 5] != EMPTY_CELL)
-            ) {
-                val printing = PrettyFieldPrinting()
-                printing.print(field)
-                val ending = EndMode(true)
+                // Нечетный ряд
+            } else {
+                // Клетка у края
+                if (sheepCurrentIndex % 4 == 0) {
+                    if ((field[sheepCurrentIndex + 4] != EMPTY_CELL) && (field[sheepCurrentIndex - 4] != EMPTY_CELL)) {
+                        return 'W'
+                    }
+                    // Клетка не у края
+                } else if ((field[sheepCurrentIndex + 4] != EMPTY_CELL) && (field[sheepCurrentIndex + 3] != EMPTY_CELL) &&
+                    (field[sheepCurrentIndex - 4] != EMPTY_CELL) && (field[sheepCurrentIndex - 5] != EMPTY_CELL))
+                {
+                    return 'W'
+                }
             }
         }
 
+        return '-'
     }
 
     private fun getMove(move: String): Pair<Int, Int> {
         return try {
             if (move == "exit") {
-                val ending = EndMode(false)
+                EndMode(false)
             }
             val spltdMove = move.split(" ")
-            (mapOfCells[spltdMove[0].toLowerCase()] ?: error("")) to (mapOfCells[spltdMove[1].toLowerCase()]
-                ?: error(""))
+            if (spltdMove.size == 2) {
+                (mapOfCells[spltdMove[0].toLowerCase()] ?: error("")) to (mapOfCells[spltdMove[1].toLowerCase()]
+                    ?: error(""))
+            } else {
+                0 to 0
+            }
         } catch (e: Exception) {
             0 to 0
         }
+    }
+
+    private fun endGame(result: Boolean) {
+        val printing = PrettyFieldPrinting()
+        printing.printField(field)
+        EndMode(result)
     }
 }

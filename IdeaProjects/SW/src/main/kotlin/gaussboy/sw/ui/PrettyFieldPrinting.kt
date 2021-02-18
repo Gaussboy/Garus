@@ -1,10 +1,8 @@
 package gaussboy.sw.ui
 
-import java.lang.reflect.Field
-
 class PrettyFieldPrinting {
 
-    fun print(field: Array<Int>) {
+    fun printField(field: Array<Int>) {
         var counter = 0
         println("|   | A | B | C | D | E | F | G | H |")
         for (i in 7 downTo 0) {
@@ -20,18 +18,21 @@ class PrettyFieldPrinting {
                     counter++
                 }
             }
+            print(" ${i+1} |")
             print("\n")
             println("--------------------------------------")
         }
+        println("|   | A | B | C | D | E | F | G | H |")
+        print("\n\n")
     }
 
     fun getSymbol(num: Int): String {
         return when (num) {
             1 -> {
-                "+"
+                "S"
             }
             2 -> {
-                "-"
+                "W"
             }
             else -> " "
         }
